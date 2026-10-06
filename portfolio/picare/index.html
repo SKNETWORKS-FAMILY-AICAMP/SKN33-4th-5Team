@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PiCare · 최지흠 포트폴리오</title>
+  <style>
+    :root { --paper:#fcfaf7; --ink:#152225; --muted:#596568; --accent:#d8284c; --line:#d9dcd6; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#eeede8; font-family:Arial,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; }
+    button,a { -webkit-tap-highlight-color:transparent; }
+    button { color:inherit; font:inherit; cursor:pointer; }
+    button:focus-visible,a:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
+    [hidden] { display:none !important; }
+    .toolbar { position:relative; z-index:2; min-height:68px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:12px 24px; border-bottom:1px solid var(--line); background:var(--paper); }
+    .viewer-brand { margin:0; font-size:17px; font-weight:700; letter-spacing:-.3px; white-space:nowrap; }
+    .viewer-brand span { color:var(--muted); font-weight:400; margin-left:12px; }
+    .controls { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:4px; }
+    .controls button { border:0; background:transparent; padding:9px 11px; font-size:14px; border-radius:3px; }
+    .controls button:hover,.controls button[aria-pressed="true"],.controls button[aria-expanded="true"] { background:#e9e9e3; }
+    .controls button:disabled { opacity:.3; cursor:default; }
+    .page-count { padding:0 10px; min-width:72px; text-align:center; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .stage { min-height:calc(100svh - 116px); padding:24px; display:grid; place-items:center; }
+    .slide-frame { position:relative; flex:none; width:1600px; height:900px; }
+    .slide-frame:not(.is-active) { display:none; }
+    .slide { position:relative; width:1600px; height:900px; padding:64px; overflow:hidden; background:var(--paper); transform-origin:top left; text-align:left; }
+    .slide-header { height:184px; }
+    .eyebrow { margin:0 0 14px; color:var(--accent); font-size:18px; font-weight:700; letter-spacing:1.4px; line-height:1.25; }
+    .slide-title { margin:0; font-size:48px; line-height:1.16; letter-spacing:-1.8px; font-weight:700; word-break:keep-all; overflow-wrap:break-word; }
+    .slide-summary { margin:18px 0 0; max-width:1430px; font-size:28px; line-height:1.43; letter-spacing:-.6px; color:var(--muted); word-break:keep-all; overflow-wrap:break-word; }
+    .slide-body { height:532px; }
+    .slide-footer { position:absolute; left:64px; right:64px; bottom:34px; display:flex; justify-content:space-between; align-items:center; gap:20px; border-top:1px solid var(--line); padding-top:14px; font-size:16px; color:var(--muted); letter-spacing:.2px; }
+    .slide-footer .footer-number { color:var(--accent); font-variant-numeric:tabular-nums; }
+    .footer-source { color:var(--muted); text-decoration:none; text-underline-offset:3px; }
+    a.footer-source:hover { color:var(--accent); text-decoration:underline; }
+    .media { margin:0; display:flex; flex-direction:column; height:100%; min-width:0; min-height:0; }
+    .image-stage { display:flex; flex:1; align-items:center; justify-content:center; min-width:0; min-height:0; overflow:hidden; }
+    .media img { display:block; width:100%; height:100%; object-fit:contain; }
+    .media figcaption { flex:none; margin-top:12px; min-height:24px; font-size:18px; line-height:1.35; color:var(--muted); word-break:keep-all; }
+    .original-link { margin-left:16px; color:var(--accent); font-size:16px; text-decoration:underline; text-underline-offset:3px; white-space:nowrap; }
+    a.image-stage:focus-visible { outline-offset:-4px; }
+    .media-missing { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f0eee8; color:var(--muted); font-size:22px; padding:24px; text-align:center; }
+    .editorial-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:26px; }
+    .editorial-list li { min-width:0; }
+    .item-title { margin:0 0 8px; font-size:28px; font-weight:700; line-height:1.3; letter-spacing:-.6px; word-break:keep-all; }
+    .item-text { margin:0; font-size:28px; line-height:1.43; color:var(--muted); letter-spacing:-.6px; word-break:keep-all; overflow-wrap:break-word; }
+    .contribution { margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+    .contribution-label { margin:0 0 9px; font-size:18px; color:var(--accent); font-weight:700; }
+    .contribution-text { margin:0; font-size:26px; line-height:1.42; letter-spacing:-.5px; word-break:keep-all; overflow-wrap:break-word; white-space:pre-line; }
+    .split-layout { display:grid; grid-template-columns:940px 1fr; gap:48px; }
+    .split-layout .text-column { min-width:0; }
+    .split-layout .item-title { font-size:26px; }
+    .split-layout .item-text { font-size:26px; }
+    .split-layout .contribution-text { font-size:24px; }
+    .cover { padding-top:64px; }
+    .cover-topline { display:flex; justify-content:space-between; align-items:center; margin-bottom:50px; }
+    .cover-topline .eyebrow { margin:0; }
+    .cover-topline .author { font-size:22px; color:var(--muted); }
+    .cover-layout { height:640px; display:grid; grid-template-columns:626px 1fr; gap:44px; align-items:center; }
+    .cover-copy { min-width:0; }
+    .cover-wordmark { margin:0 0 20px; font-size:116px; line-height:1; letter-spacing:-7px; font-weight:700; }
+    .cover-wordmark span { color:var(--accent); }
+    .cover-description { margin:0 0 32px; font-size:22px; color:var(--muted); line-height:1.4; }
+    .cover .slide-title { font-size:48px; line-height:1.24; letter-spacing:-1.5px; }
+    .cover .slide-summary { font-size:28px; margin-top:24px; }
+    .cover .contribution { margin-top:32px; border:0; padding:0; }
+    .cover .contribution-text { font-size:24px; color:var(--muted); }
+    .cover-layout .media { height:610px; }
+    .journey-layout { display:flex; flex-direction:column; gap:16px; }
+    .media-pair { display:grid; grid-template-columns:1fr 1fr; gap:36px; min-height:0; }
+    .journey-layout .media-pair { height:326px; flex:none; }
+    .journey-layout .editorial-list { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; }
+    .journey-layout .item-title { font-size:26px; }
+    .journey-layout .item-text { font-size:24px; }
+    .journey-layout .contribution { margin:0; padding-top:10px; }
+    .journey-layout .contribution-label { display:none; }
+    .journey-layout .contribution-text { font-size:22px; }
+    .layout-architecture .slide-header { height:160px; }
+    .architecture-layout { grid-template-columns:1060px 1fr; gap:36px; height:556px; }
+    .architecture-layout .editorial-list { gap:22px; }
+    .architecture-layout .item-title { font-size:25px; }
+    .architecture-layout .item-text { font-size:24px; }
+    .architecture-layout .contribution { margin-top:20px; padding-top:14px; }
+    .architecture-layout .contribution-text { font-size:23px; }
+    .django-layout { display:grid; grid-template-columns:490px 1fr; gap:48px; }
+    .django-layout .editorial-list { gap:22px; }
+    .django-layout .item-text { font-size:26px; }
+    .code-block { height:532px; margin:0; background:#152225; color:#f4f1e9; padding:30px 34px; overflow:hidden; }
+    .code-filename { margin:0 0 25px; font-size:20px; color:#b8c5c7; letter-spacing:.2px; }
+    .code-block pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; font-family:Menlo,Consolas,monospace; font-size:26px; line-height:1.57; tab-size:4; }
+    .records-layout { display:flex; flex-direction:column; gap:16px; }
+    .records-layout .media-pair { height:320px; flex:none; grid-template-columns:1.05fr 1fr; }
+    .records-layout .editorial-list { display:grid; grid-template-columns:repeat(3,1fr); gap:30px; }
+    .records-layout .item-title { font-size:25px; margin-bottom:7px; }
+    .records-layout .item-text { font-size:24px; }
+    .records-layout .contribution { margin:0; padding-top:10px; }
+    .records-layout .contribution-label { display:none; }
+    .records-layout .contribution-text { font-size:22px; }
+    .remote-layout { grid-template-columns:865px 1fr; gap:50px; }
+    .deploy-layout { grid-template-columns:500px 1fr; gap:64px; }
+    .deploy-layout .item-title,.deploy-layout .item-text { font-size:26px; }
+    .deploy-layout .media { padding:0 12px; }
+    .incident-layout { grid-template-columns:910px 1fr; gap:48px; }
+    .incident-layout .item-title { color:var(--accent); font-size:26px; }
+    .incident-layout .item-text { font-size:25px; }
+    .results-layout { display:flex; flex-direction:column; gap:20px; }
+    .metric-row { display:grid; grid-template-columns:repeat(3,1fr); gap:48px; padding:12px 0 24px; border-bottom:1px solid var(--line); }
+    .metric-value { margin:0 0 14px; font-size:100px; font-weight:700; line-height:1.12; letter-spacing:-5px; color:var(--accent); }
+    .metric-label { margin:0 0 12px; font-size:28px; font-weight:700; line-height:1.3; }
+    .metric-detail { margin:0; font-size:24px; line-height:1.4; color:var(--muted); word-break:keep-all; }
+    .results-layout .editorial-list { display:grid; grid-template-columns:repeat(3,1fr); gap:44px; }
+    .results-layout .item-title { font-size:26px; }
+    .results-layout .item-text { font-size:25px; }
+    .results-layout .contribution { margin-top:0; padding-top:12px; }
+    .results-layout .contribution-label { display:none; }
+    .results-layout .contribution-text { font-size:24px; }
+    .project-links { display:flex; gap:32px; align-items:center; font-size:23px; line-height:1.4; }
+    .project-links a { color:var(--accent); text-decoration:underline; text-underline-offset:5px; }
+    .viewer-hint { margin:0; padding:0 20px 20px; color:var(--muted); text-align:center; font-size:12px; }
+    .overview { max-width:1450px; margin:0 auto; padding:32px 24px 44px; }
+    .overview-heading { margin:0 0 24px; font-size:24px; font-weight:700; }
+    .thumbnail-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:28px; }
+    .thumbnail { min-width:0; padding:0; border:0; background:transparent; text-align:left; }
+    .thumbnail-frame { position:relative; overflow:hidden; width:100%; aspect-ratio:16/9; box-shadow:0 0 0 1px #d3d8d0; }
+    .thumbnail:hover .thumbnail-frame,.thumbnail[aria-current="true"] .thumbnail-frame { box-shadow:0 0 0 3px var(--accent); }
+    .thumbnail .slide { pointer-events:none; }
+    .thumbnail-label { display:flex; gap:12px; margin-top:12px; font-size:15px; line-height:1.4; }
+    .thumbnail-number { color:var(--accent); font-size:13px; padding-top:1px; }
+    .evidence-panel { width:calc(100% - 48px); max-width:1150px; margin:8px auto 32px; padding:28px 32px; background:var(--paper); border-top:3px solid var(--accent); }
+    .evidence-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:20px; }
+    .evidence-heading h2 { margin:0; font-size:22px; }
+    .evidence-heading button { background:transparent; border:0; font-size:14px; padding:8px; }
+    .source-list,.note-list { padding-left:22px; margin:14px 0 0; }
+    .source-list li,.note-list li { margin:0 0 12px; line-height:1.6; font-size:15px; overflow-wrap:anywhere; }
+    .source-list a { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+    .source-detail { display:block; color:var(--muted); font-size:14px; }
+    .evidence-panel h3 { font-size:17px; margin:24px 0 8px; }
+    .error-panel { max-width:720px; margin:70px auto; padding:28px; background:var(--paper); border-top:3px solid var(--accent); line-height:1.7; }
+    .error-panel h1 { font-size:23px; margin:0 0 12px; }
+    .error-panel p { margin:0; white-space:pre-line; }
+    .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    @media(max-width:900px) {
+      .toolbar { gap:12px; padding:10px 14px; }
+      .viewer-brand span { display:none; }
+      .thumbnail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media(max-width:520px) {
+      .toolbar { flex-direction:column; align-items:stretch; gap:6px; }
+      .viewer-brand { font-size:15px; }
+      .controls { justify-content:space-between; gap:0; }
+      .controls button { padding:8px 6px; font-size:12px; }
+      .page-count { min-width:51px; padding:0 4px; font-size:12px; }
+      .stage { padding:20px 12px; min-height:calc(100svh - 145px); }
+      .thumbnail-grid { grid-template-columns:1fr; }
+      .evidence-panel { width:calc(100% - 24px); padding:22px; }
+      .viewer-hint { font-size:11px; }
+    }
+    @media print {
+      @page { size:10in 5.625in; margin:0; }
+      html,body { width:10in; margin:0; padding:0; background:var(--paper); }
+      .toolbar,.overview,.viewer-hint,.evidence-panel,.error-panel,.sr-only { display:none !important; }
+      .stage { display:block !important; min-height:0; padding:0; margin:0; }
+      .slide-frame,.slide-frame:not(.is-active) { display:block !important; width:10in !important; height:5.625in !important; margin:0; padding:0; break-after:page; page-break-after:always; overflow:hidden; }
+      .slide-frame:last-child { break-after:auto; page-break-after:auto; }
+      .slide { transform:scale(.6) !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar" aria-label="슬라이드 탐색">
+    <p class="viewer-brand">PiCare <span>최지흠 포트폴리오</span></p>
+    <nav class="controls" aria-label="프레젠테이션 도구">
+      <button id="previous" type="button" aria-label="이전 슬라이드">← 이전</button>
+      <span id="pageCount" class="page-count" aria-live="polite">— / —</span>
+      <button id="next" type="button" aria-label="다음 슬라이드">다음 →</button>
+      <button id="showOverview" type="button" aria-pressed="false" aria-controls="overview">전체보기</button>
+      <button id="showEvidence" type="button" aria-expanded="false" aria-controls="evidence">근거</button>
+      <button id="print" type="button">인쇄</button>
+    </nav>
+  </header>
+  <main id="deck" class="stage" tabindex="-1" aria-label="PiCare 포트폴리오 슬라이드"></main>
+  <section id="overview" class="overview" aria-label="슬라이드 전체보기" hidden>
+    <h1 class="overview-heading">전체 슬라이드</h1>
+    <div id="thumbnailGrid" class="thumbnail-grid"></div>
+  </section>
+  <p id="viewerHint" class="viewer-hint">← → 슬라이드 이동 · G 전체보기 · Esc 닫기 · 인쇄하면 각 장이 16:9 한 페이지로 출력됩니다.</p>
+  <aside id="evidence" class="evidence-panel" aria-labelledby="evidenceTitle" hidden>
+    <div class="evidence-heading">
+      <h2 id="evidenceTitle">이 슬라이드의 근거</h2>
+      <button id="closeEvidence" type="button" aria-label="근거 패널 닫기">닫기 ×</button>
+    </div>
+    <div id="evidenceContent"></div>
+  </aside>
+  <section id="errorPanel" class="error-panel" role="alert" hidden>
+    <h1>포트폴리오를 표시하지 못했습니다.</h1>
+    <p id="errorMessage"></p>
+  </section>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+  <script src="content.js" onerror="window.PICARE_CONTENT_LOAD_ERROR = true;"></script>
+  <script>
+    (() => {
+      'use strict';
+      const CANVAS_WIDTH = 1600;
+      const CANVAS_HEIGHT = 900;
+      const $ = (id) => document.getElementById(id);
+      const stage = $('deck');
+      const overview = $('overview');
+      const evidence = $('evidence');
+      let data;
+      let active = 0;
+      let frames = [];
+      let thumbnails = [];
+      let resizeObserver;
+
+      function plain(value) {
+        if (Array.isArray(value)) return value.map(plain).filter(Boolean).join('\n');
+        return value === undefined || value === null ? '' : String(value);
+      }
+
+      function element(tag, className, value) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (value !== undefined) node.textContent = plain(value);
+        return node;
+      }
+
+      function safeUrl(value, image) {
+        if (typeof value !== 'string' || !value.trim()) return null;
+        try {
+          const url = new URL(value, window.location.href);
+          if (['https:', 'http:', 'file:'].includes(url.protocol)) return url.href;
+          if (image && url.protocol === 'data:' && /^data:image\/(png|jpeg|webp);/i.test(value)) return value;
+        } catch (_) { /* A malformed asset or source URL is not rendered. */ }
+        return null;
+      }
+
+      function showError(message) {
+        $('errorMessage').textContent = plain(message);
+        $('errorPanel').hidden = false;
+        stage.hidden = true;
+        overview.hidden = true;
+        evidence.hidden = true;
+        $('viewerHint').hidden = true;
+        for (const button of document.querySelectorAll('.controls button')) button.disabled = true;
+      }
+
+      function mediaFigure(item, interactive) {
+        const figure = element('figure', 'media');
+        const source = safeUrl(item && item.src, true);
+        const imageStage = element(source && interactive !== false ? 'a' : 'div', 'image-stage');
+        if (source && interactive !== false) {
+          imageStage.href = source;
+          imageStage.target = '_blank';
+          imageStage.rel = 'noopener noreferrer';
+          imageStage.setAttribute('aria-label', plain(item.alt || '근거 이미지') + ' 원본 보기');
+          imageStage.title = '원본 이미지 보기';
+        }
+        if (source) {
+          const image = element('img');
+          image.src = source;
+          image.alt = plain(item.alt || item.caption || '프로젝트 증거 이미지');
+          image.decoding = 'async';
+          image.addEventListener('error', () => {
+            imageStage.replaceChildren(element('div', 'media-missing', '이미지를 불러오지 못했습니다.\n' + plain(item.src)));
+          }, { once:true });
+          imageStage.append(image);
+        } else {
+          imageStage.append(element('div', 'media-missing', '이미지가 지정되지 않았습니다.'));
+        }
+        figure.append(imageStage);
+        if (item && item.caption) {
+          const caption = element('figcaption', '', item.caption);
+          if (source && interactive !== false) {
+            const link = element('a', 'original-link', '원본보기 ↗');
+            link.href = source;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            caption.append(link);
+          }
+          figure.append(caption);
+        }
+        return figure;
+      }
+
+      function itemList(items) {
+        const list = element('ul', 'editorial-list');
+        for (const item of Array.isArray(items) ? items : []) {
+          const row = element('li');
+          if (item.title) row.append(element('h3', 'item-title', item.title));
+          if (item.text) row.append(element('p', 'item-text', item.text));
+          list.append(row);
+        }
+        return list;
+      }
+
+      function contribution(slide) {
+        const section = element('div', 'contribution');
+        section.append(element('p', 'contribution-label', '내 기여'));
+        section.append(element('p', 'contribution-text', slide.contribution));
+        return section;
+      }
+
+      function textColumn(slide) {
+        const column = element('div', 'text-column');
+        column.append(itemList(slide.items));
+        if (slide.contribution) column.append(contribution(slide));
+        return column;
+      }
+
+      function header(slide) {
+        const region = element('header', 'slide-header');
+        if (slide.eyebrow) region.append(element('p', 'eyebrow', slide.eyebrow));
+        region.append(element('h2', 'slide-title', slide.title));
+        if (slide.summary) region.append(element('p', 'slide-summary', slide.summary));
+        return region;
+      }
+
+      function footer(index, interactive) {
+        const region = element('footer', 'slide-footer');
+        region.append(element('span', '', 'PiCare · ' + plain(data.author)));
+        const source = (data.slides[index].sources || [])[0];
+        const url = source && safeUrl(source.url, false);
+        if (url) {
+          const citation = element(interactive ? 'a' : 'span', 'footer-source', '근거 · ' + plain(source.label));
+          if (interactive) {
+            citation.href = url;
+            citation.target = '_blank';
+            citation.rel = 'noopener noreferrer';
+          }
+          region.append(citation);
+        }
+        region.append(element('span', 'footer-number', String(index + 1).padStart(2, '0') + ' / ' + String(data.slides.length).padStart(2, '0')));
+        return region;
+      }
+
+      function pairedMedia(slide, interactive) {
+        const pair = element('div', 'media-pair');
+        for (const item of (slide.media || []).slice(0, 2)) pair.append(mediaFigure(item, interactive));
+        return pair;
+      }
+
+      function renderSlide(slide, index, isThumbnail) {
+        const article = element('article', 'slide');
+        article.dataset.slideId = slide.id;
+        article.setAttribute('aria-label', (index + 1) + '. ' + plain(slide.title));
+        const layout = slide.layout || slide.id;
+        article.classList.add('layout-' + layout);
+        if (layout === 'cover') {
+          article.classList.add('cover');
+          const topline = element('div', 'cover-topline');
+          topline.append(element('p', 'eyebrow', slide.eyebrow || 'AI SERVICE · BACKEND · FULL STACK'));
+          topline.append(element('span', 'author', data.author));
+          const body = element('div', 'cover-layout');
+          const copy = element('div', 'cover-copy');
+          const wordmark = element('p', 'cover-wordmark');
+          wordmark.append(document.createTextNode('Pi'), element('span', '', 'Care'));
+          copy.append(wordmark);
+          const description = (slide.items || [])[0];
+          if (description && description.text) copy.append(element('p', 'cover-description', description.text));
+          copy.append(element('h1', 'slide-title', slide.title));
+          if (slide.summary) copy.append(element('p', 'slide-summary', slide.summary));
+          if (slide.contribution) copy.append(contribution(slide));
+          body.append(copy, mediaFigure((slide.media || [])[0], !isThumbnail));
+          article.append(topline, body);
+        } else {
+          article.append(header(slide));
+          let body;
+          if (layout === 'journey' || layout === 'records') {
+            body = element('div', 'slide-body ' + layout + '-layout');
+            body.append(pairedMedia(slide, !isThumbnail), itemList(slide.items));
+            if (slide.contribution) body.append(contribution(slide));
+          } else if (layout === 'django') {
+            body = element('div', 'slide-body django-layout');
+            const code = element('figure', 'code-block');
+            code.append(element('figcaption', 'code-filename', slide.code && slide.code.filename));
+            const pre = element('pre');
+            pre.append(element('code', '', slide.code && slide.code.text));
+            code.append(pre);
+            body.append(textColumn(slide), code);
+          } else if (layout === 'results') {
+            body = element('div', 'slide-body results-layout');
+            const metrics = element('div', 'metric-row');
+            for (const item of slide.metrics || []) {
+              const metric = element('div', 'metric');
+              metric.append(element('p', 'metric-value', item.value), element('h3', 'metric-label', item.label), element('p', 'metric-detail', item.detail));
+              metrics.append(metric);
+            }
+            body.append(metrics, itemList(slide.items));
+            if (slide.contribution) body.append(contribution(slide));
+            const links = element('div', 'project-links');
+            for (const [key, label] of [['github', 'GitHub · 프로젝트 코드'], ['retrospective', 'Velog · 개인 회고']]) {
+              const url = data.links && safeUrl(data.links[key], false);
+              if (!url) continue;
+              const link = element(isThumbnail ? 'span' : 'a', '', label);
+              if (!isThumbnail) { link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+              links.append(link);
+            }
+            body.append(links);
+          } else {
+            body = element('div', 'slide-body split-layout ' + layout + '-layout');
+            const figure = mediaFigure((slide.media || [])[0], !isThumbnail);
+            const copy = textColumn(slide);
+            if (layout === 'deploy') body.append(copy, figure);
+            else body.append(figure, copy);
+          }
+          article.append(body);
+        }
+        article.append(footer(index, !isThumbnail));
+        return article;
+      }
+
+      function fit() {
+        if (!frames.length) return;
+        const mobile = window.innerWidth <= 520;
+        const horizontalPadding = mobile ? 24 : 48;
+        const availableWidth = Math.max(160, stage.clientWidth - horizontalPadding);
+        const availableHeight = Math.max(100, window.innerHeight - document.querySelector('.toolbar').offsetHeight - 68);
+        const scale = Math.min(availableWidth / CANVAS_WIDTH, availableHeight / CANVAS_HEIGHT, 1);
+        for (const frame of frames) {
+          frame.style.width = CANVAS_WIDTH * scale + 'px';
+          frame.style.height = CANVAS_HEIGHT * scale + 'px';
+          frame.firstElementChild.style.transform = 'scale(' + scale + ')';
+        }
+        if (!overview.hidden) {
+          for (const thumbnail of thumbnails) {
+            const frame = thumbnail.querySelector('.thumbnail-frame');
+            const article = frame.firstElementChild;
+            article.style.transform = 'scale(' + frame.clientWidth / CANVAS_WIDTH + ')';
+          }
+        }
+      }
+
+      function populateEvidence() {
+        const slide = data.slides[active];
+        $('evidenceTitle').textContent = plain(slide.title) + ' · 근거와 메모';
+        const region = $('evidenceContent');
+        region.replaceChildren();
+        const sources = Array.isArray(slide.sources) ? slide.sources : [];
+        if (sources.length) {
+          region.append(element('h3', '', '확인 가능한 자료'));
+          const list = element('ul', 'source-list');
+          for (const source of sources) {
+            const row = element('li');
+            const url = safeUrl(source.url, false);
+            if (url) {
+              const link = element('a', '', source.label || source.url);
+              link.href = url;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              row.append(link);
+            } else row.append(element('span', '', source.label || '자료'));
+            if (source.detail) row.append(element('span', 'source-detail', source.detail));
+            list.append(row);
+          }
+          region.append(list);
+        } else region.append(element('p', '', '이 장에 등록된 출처가 없습니다.'));
+        if (Array.isArray(slide.notes) && slide.notes.length) {
+          region.append(element('h3', '', '발표자 메모 · 해석 범위'));
+          const notes = element('ul', 'note-list');
+          for (const note of slide.notes) notes.append(element('li', '', note));
+          region.append(notes);
+        }
+        if (data.links) {
+          const list = element('ul', 'source-list');
+          for (const [key, label] of [['github', 'GitHub 저장소'], ['retrospective', '개인 작업물 정리']]) {
+            const url = safeUrl(data.links[key], false);
+            if (!url) continue;
+            const row = element('li');
+            const link = element('a', '', label);
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            row.append(link);
+            list.append(row);
+          }
+          if (list.childElementCount) { region.append(element('h3', '', '프로젝트 연결'), list); }
+        }
+      }
+
+      function updateHash(id) {
+        const next = '#' + encodeURIComponent(id);
+        if (window.location.hash === next) return;
+        try { window.history.replaceState(null, '', next); }
+        catch (_) { window.location.hash = next; }
+      }
+
+      function goTo(index, synchronize) {
+        active = Math.max(0, Math.min(data.slides.length - 1, index));
+        for (let i = 0; i < frames.length; i += 1) {
+          frames[i].classList.toggle('is-active', i === active);
+          frames[i].setAttribute('aria-hidden', i === active ? 'false' : 'true');
+          thumbnails[i].setAttribute('aria-current', i === active ? 'true' : 'false');
+        }
+        $('pageCount').textContent = (active + 1) + ' / ' + data.slides.length;
+        $('previous').disabled = active === 0;
+        $('next').disabled = active === data.slides.length - 1;
+        $('announcement').textContent = (active + 1) + '장. ' + plain(data.slides[active].title);
+        document.title = plain(data.title || 'PiCare 포트폴리오') + ' · ' + plain(data.slides[active].title);
+        if (synchronize !== false) updateHash(data.slides[active].id);
+        if (!evidence.hidden) populateEvidence();
+        fit();
+      }
+
+      function indexFromHash() {
+        let id;
+        try { id = decodeURIComponent(window.location.hash.slice(1)); }
+        catch (_) { return 0; }
+        const index = data.slides.findIndex((slide) => slide.id === id);
+        return index < 0 ? 0 : index;
+      }
+
+      function toggleOverview(force) {
+        const open = typeof force === 'boolean' ? force : overview.hidden;
+        overview.hidden = !open;
+        stage.hidden = open;
+        $('showOverview').setAttribute('aria-pressed', String(open));
+        $('viewerHint').hidden = open;
+        fit();
+        if (open) thumbnails[active].focus({ preventScroll:true });
+        else stage.focus({ preventScroll:true });
+      }
+
+      function toggleEvidence(force) {
+        const open = typeof force === 'boolean' ? force : evidence.hidden;
+        evidence.hidden = !open;
+        $('showEvidence').setAttribute('aria-expanded', String(open));
+        if (open) {
+          populateEvidence();
+          evidence.scrollIntoView({ behavior:'smooth', block:'start' });
+        }
+      }
+
+      function isTyping(target) {
+        return target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+      }
+
+      try {
+        data = window.PICARE_PORTFOLIO;
+        if (window.PICARE_CONTENT_LOAD_ERROR || !data || !Array.isArray(data.slides) || !data.slides.length) {
+          throw new Error('같은 폴더의 content.js 파일을 확인해 주세요.\nindex.html과 content.js, assets 폴더를 함께 두면 파일을 직접 열어도 표시됩니다.');
+        }
+        const ids = new Set();
+        for (const slide of data.slides) {
+          if (!slide || typeof slide.id !== 'string' || !slide.id.trim() || ids.has(slide.id)) throw new Error('슬라이드 ID가 없거나 중복되었습니다. content.js를 확인해 주세요.');
+          ids.add(slide.id);
+        }
+        data.slides.forEach((slide, index) => {
+          const frame = element('div', 'slide-frame');
+          frame.append(renderSlide(slide, index));
+          stage.append(frame);
+          frames.push(frame);
+          const button = element('button', 'thumbnail');
+          button.type = 'button';
+          button.setAttribute('aria-label', (index + 1) + '장 ' + plain(slide.title));
+          const miniature = element('div', 'thumbnail-frame');
+          miniature.setAttribute('aria-hidden', 'true');
+          miniature.append(renderSlide(slide, index, true));
+          const label = element('span', 'thumbnail-label');
+          label.append(element('span', 'thumbnail-number', String(index + 1).padStart(2, '0')), element('span', '', slide.title));
+          button.append(miniature, label);
+          button.addEventListener('click', () => { toggleOverview(false); goTo(index); stage.focus({ preventScroll:true }); });
+          $('thumbnailGrid').append(button);
+          thumbnails.push(button);
+        });
+        $('previous').addEventListener('click', () => goTo(active - 1));
+        $('next').addEventListener('click', () => goTo(active + 1));
+        $('showOverview').addEventListener('click', () => toggleOverview());
+        $('showEvidence').addEventListener('click', () => toggleEvidence());
+        $('closeEvidence').addEventListener('click', () => { toggleEvidence(false); $('showEvidence').focus(); });
+        $('print').addEventListener('click', () => window.print());
+        window.addEventListener('hashchange', () => goTo(indexFromHash(), false));
+        window.addEventListener('resize', fit);
+        window.addEventListener('keydown', (event) => {
+          if (isTyping(event.target) || event.altKey || event.ctrlKey || event.metaKey) return;
+          const key = event.key;
+          if (['ArrowLeft','ArrowRight','PageUp','PageDown','Home','End','Escape','g','G'].includes(key)) event.preventDefault();
+          if (key === 'ArrowLeft' || key === 'PageUp') goTo(active - 1);
+          else if (key === 'ArrowRight' || key === 'PageDown') goTo(active + 1);
+          else if (key === 'Home') goTo(0);
+          else if (key === 'End') goTo(data.slides.length - 1);
+          else if (key === 'g' || key === 'G') toggleOverview();
+          else if (key === 'Escape') {
+            toggleEvidence(false);
+            if (!overview.hidden) toggleOverview(false);
+            stage.focus({ preventScroll:true });
+          }
+        });
+        if ('ResizeObserver' in window) {
+          resizeObserver = new ResizeObserver(fit);
+          resizeObserver.observe($('thumbnailGrid'));
+        }
+        window.addEventListener('error', (event) => {
+          if (event.error) showError('화면 스크립트에 오류가 발생했습니다.\n' + plain(event.message));
+        });
+        goTo(indexFromHash());
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      } catch (error) {
+        showError(error.message || 'content.js의 데이터 형식을 확인해 주세요.');
+      }
+    })();
+  </script>
+</body>
+</html>
